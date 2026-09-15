@@ -1,0 +1,13 @@
+﻿FAJN — tvorba zbývajících 89 nahrávek
+
+1. ZIP nejdřív celý rozbal (Extrahovat vše).
+2. Otevři rozbalenou složku a dvakrát klikni na SPUSTIT.cmd.
+3. Do okna vlož API klíč svého účtu OpenAI. Zobrazí se jen hvězdičky. Stiskni Enter. Klíč neukládáme do žádného souboru. Posílá se jen službě api.openai.com.
+4. Po dokončení pošli Nele soubor nahravky-marin.zip, který se objeví ve stejné složce.
+
+Program vyžaduje Node.js 20 nebo novější. Nic sám neinstaluje a nemění nastavení zabezpečení počítače.
+Vytváření je placené podle spotřeby tvého OpenAI API. Hotové soubory při dalším spuštění přeskočí. Původní nahrávku sýkorek zachová.
+Při přerušení znovu spusť SPUSTIT.cmd ve stejné složce. Automatické opakování placených požadavků neprovádíme.
+
+Nahrávky vznikají automaticky, nemusíš číst do mikrofonu.
+Podklady: https://developers.openai.com/api/docs/guides/text-to-speech
