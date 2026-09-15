@@ -11,7 +11,7 @@ const texts=JSON.parse(await fs.readFile(path.join(root,'tools/voice-texts.json'
 const generate=process.argv.includes('--generate');
 const limit=Number(process.argv.find(a=>a.startsWith('--limit='))?.slice(8)||1);
 if(!Number.isInteger(limit)||limit<1||limit>90)throw Error('Limit must be from 1 to 90.');
-const model='gpt-4o-mini-tts',voice='coral';
+const model='gpt-4o-mini-tts',voice='marin';
 const instructions='Mluv přirozenou spisovnou češtinou jako laskavá učitelka. Čti klidně, zřetelně a bez přehnaného nadšení. Mezi větami dělej krátké pauzy. Čísla i jednotky vyslov celými českými slovy. Zachovej přesně znění zadání; nic nedoplňuj a neprozrazuj řešení.';
 const entries=Object.entries(texts).slice(0,limit);
 console.log(`${entries.length} recordings selected; ${entries.reduce((n,[,t])=>n+t.length,0)} characters. ${generate?'Generation enabled.':'Dry run: no paid request.'}`);
@@ -20,6 +20,7 @@ if(!process.env.OPENAI_API_KEY)throw Error('Missing OPENAI_API_KEY. Configure th
 await fs.mkdir(path.join(output,'audio'),{recursive:true});
 let manifest={};try{const raw=await fs.readFile(path.join(output,'voice-manifest.js'),'utf8');manifest=JSON.parse(raw.replace(/^window.voiceManifest\s*=\s*/,'').replace(/;\s*$/,''))}catch{}
 for(const [id,text] of entries){
+ if(manifest[id]?.text===text && manifest[id]?.voice===voice && manifest[id]?.origin==='user-upload' && await fs.stat(path.join(output,manifest[id].src)).then(s=>s.size>0).catch(()=>false)){console.log(`Ready: ${id} (uploaded recording)`);continue;}
  const hash=createHash('sha256').update(JSON.stringify({text,model,voice,instructions})).digest('hex').slice(0,24);
  const src=`audio/${hash}.mp3`,file=path.join(output,src);
  if(!await fs.stat(file).then(s=>s.size>0).catch(()=>false)){
@@ -28,5 +29,5 @@ for(const [id,text] of entries){
   const data=Buffer.from(await response.arrayBuffer());if(!response.headers.get('content-type')?.includes('audio')||data.length<100)throw Error('Voice service returned invalid audio.');
   await fs.writeFile(file+'.tmp',data);await fs.rename(file+'.tmp',file);
  }
- manifest[id]={text,src};await fs.writeFile(path.join(output,'voice-manifest.js'),'window.voiceManifest = '+JSON.stringify(manifest,null,2)+';\n');console.log(`Ready: ${id}`);
+ manifest[id]={text,src,voice};await fs.writeFile(path.join(output,'voice-manifest.js'),'window.voiceManifest = '+JSON.stringify(manifest,null,2)+';\n');console.log(`Ready: ${id}`);
 }

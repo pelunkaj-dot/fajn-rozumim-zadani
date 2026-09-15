@@ -4,7 +4,7 @@ function setup(initial={}){
  const node=()=>({innerHTML:'',textContent:'',children:[],style:{},value:'',classList:{toggle(){}},append(b){this.children.push(b)},setAttribute(){},querySelectorAll(){return []},querySelector(){return node()}});
  const get=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};
  const document={getElementById:get,createElement:node,querySelector:()=>node()};
- const ctx=vm.createContext({document,window:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setTimeout,console});
+ const ctx=vm.createContext({document,window:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setTimeout,console,URLSearchParams});
  vm.runInContext(fs.readFileSync('tasks.js','utf8'),ctx);ctx.tasks=ctx.window.tasks;vm.runInContext(fs.readFileSync('czech.js','utf8'),ctx);vm.runInContext(fs.readFileSync('missions.js','utf8'),ctx);
  vm.runInContext(fs.readFileSync('app.js','utf8'),ctx);
  const run=s=>vm.runInContext(s,ctx);
@@ -66,3 +66,10 @@ cs.run(`var speechSynthesis={cancel(){},speak(u){window.utterance=u.text}};windo
 cs.get('read').onclick();cs.get('device-voice').onclick();assert.ok(cs.run('window.utterance').includes('Do lesa odletí dvě sýkorky.'));
 cs.run('enter(8,0)');cs.get('read').onclick();cs.get('device-voice').onclick();assert.ok(cs.run('window.utterance').includes('dvě koruny'));
 console.log('PASS: all 90 narration texts use written Czech quantities; read button passes correct gender/case to speech; voice-generation bank matches.');
+
+const uploaded=setup();
+uploaded.run(fs.readFileSync('voice-manifest.js','utf8'));uploaded.run("openFromLink('?rocnik=1&uloha=1')");assert.equal(uploaded.run('w'),0);assert.equal(uploaded.run('mission'),0);assert.equal(uploaded.run('done(0).length'),0);assert.equal(uploaded.run("window.voiceManifest['0-0'].text"),uploaded.run('window.spokenStory(t())'));
+uploaded.run(`window.played=[];class Audio{constructor(src){window.played.push(src)}play(){return Promise.resolve()}pause(){}}`);uploaded.get('read').onclick();const recorded=uploaded.run('window.played[0]');assert.ok(recorded.startsWith('audio/marin-sykorky-'));assert.ok(fs.statSync(''+recorded).size>100000);
+uploaded.run("openFromLink('?rocnik=9&uloha=10')");assert.equal(uploaded.run('w'),8);assert.equal(uploaded.run('mission'),9);
+for(const query of ['?rocnik=0&uloha=1','?rocnik=1&uloha=11','?rocnik=x&uloha=1']){uploaded.run(`openFromLink(${JSON.stringify(query)})`);assert.ok(uploaded.get('app').innerHTML.includes('world-grid'))}
+console.log('PASS: uploaded Marin MP3 selected by real read handler; direct task links preserve progress and reject invalid indices.');
