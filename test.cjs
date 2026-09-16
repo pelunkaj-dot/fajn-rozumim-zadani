@@ -4,8 +4,8 @@ function setup(initial={}){
  const node=()=>({innerHTML:'',textContent:'',children:[],style:{},value:'',classList:{toggle(){},add(){}},append(b){this.children.push(b)},prepend(b){this.children=this.children.filter(x=>x!==b);this.children.unshift(b)},setAttribute(){},querySelectorAll(){return []},querySelector(){return node()}});
  const get=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};
  const document={getElementById:get,createElement:node,querySelector:()=>node()};
- const ctx=vm.createContext({document,window:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setTimeout,console,URLSearchParams});
- vm.runInContext(fs.readFileSync('tasks.js','utf8'),ctx);ctx.tasks=ctx.window.tasks;vm.runInContext(fs.readFileSync('czech.js','utf8'),ctx);vm.runInContext(fs.readFileSync('missions.js','utf8'),ctx);
+ const ctx=vm.createContext({document,window:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setTimeout,console,URLSearchParams,confirm:()=>true});
+ vm.runInContext(fs.readFileSync('tasks.js','utf8'),ctx);ctx.tasks=ctx.window.tasks;vm.runInContext(fs.readFileSync('czech.js','utf8'),ctx);vm.runInContext(fs.readFileSync('missions.js','utf8'),ctx);vm.runInContext(fs.readFileSync('grade9.js','utf8'),ctx);
  vm.runInContext(fs.readFileSync('app.js','utf8'),ctx);
  const run=s=>vm.runInContext(s,ctx);
  return {run,nodes,store,get,clickChoice:i=>get('work').children.at(-1).children[i].onclick()};
@@ -15,7 +15,7 @@ for(let i=0;i<9;i++){run(`enter(${i})`);assert.equal(run('w'),i);assert.equal(ru
 const y=setup();y.run('enter(0);stage=1;render()');y.get('actions').children.at(-1).onclick();assert.equal(y.run('stage'),1);y.run('moved.add(0);moved.add(1);render()');y.get('actions').children.at(-1).onclick();assert.equal(y.run('stage'),2);y.clickChoice(0);assert.equal(y.run('stage'),3);y.clickChoice(0);assert.equal(y.run('stage'),4);y.get('actions').children.at(-1).onclick();assert.equal(y.run('stage'),6);assert.equal(y.run('bonus'),false);assert.equal(y.run('done(0).length'),1);
 y.run('complete()');assert.equal(y.run('done(0).length'),1);
 for(let m=0;m<10;m++){y.run(`enter(0,${m});complete()`)}assert.equal(y.run('done(0).length'),10);assert.equal(y.run('done(8).length'),0);
-y.run('enter(8);stage=2;render()');y.clickChoice(2);assert.equal(y.run('stage'),3);y.get('trial').value='100';y.get('actions').children.at(-2).onclick();assert.ok(y.get('trial-result').innerHTML.includes('500'));y.get('actions').children.at(-1).onclick();assert.equal(y.run('stage'),2);
+y.run('enter(8,0);stage=2;render()');y.clickChoice(2);assert.equal(y.run('stage'),3);y.get('trial').value='100';y.get('actions').children.at(-2).onclick();assert.ok(y.get('trial-result').innerHTML.includes('500'));y.get('actions').children.at(-1).onclick();assert.equal(y.run('stage'),2);
 y.run('route=0;stage=3;render()');y.clickChoice(0);assert.equal(y.run('stage'),4);y.get('answer').value='49';y.get('actions').children.at(-2).onclick();assert.equal(y.run('stage'),4);y.get('answer').value='50';y.get('actions').children.at(-2).onclick();assert.equal(y.run('stage'),5);y.clickChoice(1);assert.equal(y.run('stage'),6);assert.equal(y.run('bonus'),true);
 const old=setup({'fajn-rozumim-v1':JSON.stringify({completed:[4,8]})});assert.equal(old.run('done(4).length'),1);assert.equal(old.run('done(0).length'),0);
 assert.equal(y.run('tasks[4].answer'),65000/4000);
@@ -39,10 +39,10 @@ for(let world=0;world<9;world++){
   for(let st=0;st<5;st++){z.run(`stage=${st};route=0;render()`)}
   if(world>0){z.run('stage=3;route=1;render()')}
   z.run('complete()');assert.equal(z.run('done(w).length'),m+1);
-  if(m<9){const next=z.get('actions').children.findLast(b=>b.id==='next-task');assert.equal(next.textContent,'Další úloha →');next.onclick();assert.equal(z.run('mission'),m+1)}
+  if(m<9){const next=z.get('actions').children.findLast(b=>b.id==='next-task');if(world===8){assert.equal(next.textContent,'Zpět na přehled úloh →')}else{assert.equal(next.textContent,'Další úloha →');next.onclick();assert.equal(z.run('mission'),m+1)}}
  }
  assert.equal(seen.size,10);assert.equal(z.run('nextMission()'),null);
- assert.equal(z.get('actions').children.findLast(b=>b.id==='next-task').textContent,'Vybrat další svět →');
+ assert.equal(z.get('actions').children.findLast(b=>b.id==='next-task').textContent,world===8?'Zpět na přehled úloh →':'Vybrat další svět →');
 }
 console.log('PASS: 90 distinct introductory variants, both valid routes, parameter arithmetic, next task in all grades, completion boundary.');
 module.exports={setup};
@@ -74,3 +74,22 @@ uploaded.run(`window.played=[];class Audio{constructor(src){window.played.push(s
 uploaded.run("openFromLink('?rocnik=9&uloha=10')");assert.equal(uploaded.run('w'),8);assert.equal(uploaded.run('mission'),9);
 for(const query of ['?rocnik=0&uloha=1','?rocnik=1&uloha=11','?rocnik=x&uloha=1']){uploaded.run(`openFromLink(${JSON.stringify(query)})`);assert.ok(uploaded.get('app').innerHTML.includes('world-grid'))}
 console.log('PASS: uploaded Marin MP3 selected by real read handler; direct task links preserve progress and reject invalid indices.');
+
+const g9=setup();
+assert.equal(g9.run('window.grade9Model.tasks.length'),100);
+assert.equal(g9.run('window.grade9Model.topics.length'),10);
+assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),10);
+assert.equal(g9.run('new Set(window.grade9Model.tasks.map(t=>t.id)).size'),100);
+assert.equal(g9.run('window.grade9Model.tasks.every(t=>t.grade===9&&t.topicId&&t.topicOrder&&t.difficulty&&t.rewardId)'),true);
+g9.run('enter(8,7)');assert.equal(g9.run('mission'),7);assert.ok(g9.get('app').innerHTML.includes('Přehled 9. ročníku'));
+g9.get('map-back').onclick();assert.ok(g9.get('app').innerHTML.includes('Přehled úloh 9. ročníku'));
+g9.run("grade9Topic='finance';grade9Filter='all'");assert.equal(g9.run('grade9VisibleTasks().length'),10);
+g9.run('enter(8,7);complete()');assert.equal(g9.run('grade9Progress.length'),1);
+g9.run("grade9Filter='done'");assert.equal(g9.run('grade9VisibleTasks().length'),1);
+g9.run("grade9Filter='todo'");assert.equal(g9.run('grade9VisibleTasks().length'),9);
+g9.run('enter(8,7);complete()');assert.equal(g9.run('grade9Progress.length'),1);assert.equal(g9.run('done(8).length'),1);
+g9.run("grade9Progress.push('g9-percentages-01');grade9Topic='finance';resetGrade9Topic()");assert.equal(g9.run('grade9Progress.includes("g9-finance-08")'),false);assert.equal(g9.run('grade9Progress.includes("g9-percentages-01")'),true);assert.equal(g9.run('done(8).length'),0);
+const migrated=setup({'fajn-rozumim-v2':JSON.stringify({'0':[2],'4':[1,6],'8':[0,9]})});
+assert.equal(migrated.run('done(0).join(",")'),'2');assert.equal(migrated.run('done(4).join(",")'),'1,6');assert.equal(migrated.run('grade9Progress.length'),2);assert.equal(JSON.parse(migrated.store.get('fajn-rozumim-v2'))[8].length,2);
+for(let grade=0;grade<8;grade++){const unchanged=setup();unchanged.run(`enter(${grade},4);complete()`);assert.equal(unchanged.run(`done(${grade}).join(',')`),'4');assert.equal(unchanged.run('grade9Progress.length'),0)}
+console.log('PASS: grade 9 free selection, filters, overview return, repeat, isolated topic reset, legacy migration, 100-task metadata, and unchanged grades 1-8.');
