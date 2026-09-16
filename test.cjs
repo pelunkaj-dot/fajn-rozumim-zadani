@@ -1,7 +1,7 @@
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 function setup(initial={}){
  const nodes=new Map(),store=new Map(Object.entries(initial));
- const node=()=>({innerHTML:'',textContent:'',children:[],style:{},value:'',classList:{toggle(){}},append(b){this.children.push(b)},setAttribute(){},querySelectorAll(){return []},querySelector(){return node()}});
+ const node=()=>({innerHTML:'',textContent:'',children:[],style:{},value:'',classList:{toggle(){},add(){}},append(b){this.children.push(b)},prepend(b){this.children=this.children.filter(x=>x!==b);this.children.unshift(b)},setAttribute(){},querySelectorAll(){return []},querySelector(){return node()}});
  const get=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};
  const document={getElementById:get,createElement:node,querySelector:()=>node()};
  const ctx=vm.createContext({document,window:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setTimeout,console,URLSearchParams});
@@ -20,6 +20,7 @@ y.run('route=0;stage=3;render()');y.clickChoice(0);assert.equal(y.run('stage'),4
 const old=setup({'fajn-rozumim-v1':JSON.stringify({completed:[4,8]})});assert.equal(old.run('done(4).length'),1);assert.equal(old.run('done(0).length'),0);
 assert.equal(y.run('tasks[4].answer'),65000/4000);
 assert.equal(y.run('birdCount(1)'),'jedna sýkorka');assert.equal(y.run('birdCount(5)'),'pět sýkorek');
+const nav=setup();nav.run('enter(1);groups[0]=3;route=0;stage=3;render()');assert.equal(nav.get('actions').children[0].textContent,'← Zpět k předchozímu kroku');nav.get('actions').children[0].onclick();assert.equal(nav.run('stage'),2);nav.get('actions').children[0].onclick();assert.equal(nav.run('stage'),1);assert.equal(nav.run('groups[0]'),3);
 for(const f of ['missions.js','voice-manifest.js','index.html','app.js','style.css','tasks.js','worlds.webp','sprites.webp','objects.webp'])assert.ok(fs.statSync(''+f).size>0);
 console.log('PASS: all 9 worlds and stages render; bird model gate; optional calculation; 10 unique missions; no duplicate reward; dead end and return; wrong/correct result; legacy progress migration; units and Czech number forms; assets present. DOM logic test, not browser layout test.');
 
