@@ -78,7 +78,7 @@ console.log('PASS: uploaded Marin MP3 selected by real read handler; direct task
 const g9=setup();
 assert.equal(g9.run('window.grade9Model.tasks.length'),100);
 assert.equal(g9.run('window.grade9Model.topics.length'),10);
-assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),20);
+assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),30);
 assert.equal(g9.run('new Set(window.grade9Model.tasks.map(t=>t.id)).size'),100);
 assert.equal(g9.run('window.grade9Model.tasks.every(t=>t.grade===9&&t.topicId&&t.topicOrder&&t.difficulty&&t.rewardId)'),true);
 g9.run('enter(8,7)');assert.equal(g9.run('mission'),7);assert.ok(g9.get('app').innerHTML.includes('Přehled 9. ročníku'));
@@ -109,3 +109,23 @@ percentages.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.m
 const separated=setup();separated.run("enter(8,'g9-percentages-01');complete();enter(8,0);complete()");assert.equal(separated.run('grade9Progress.length'),2);assert.equal(separated.run("grade9Progress.includes('g9-percentages-01')"),true);assert.equal(separated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(separated.run('done(8).join(",")'),'0');
 separated.run("grade9Topic='percentages';resetGrade9Topic()");assert.equal(separated.run("grade9Progress.includes('g9-percentages-01')"),false);assert.equal(separated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(separated.run('done(8).join(",")'),'0');
 console.log('PASS: 10 distinct percentage tasks, all stages, correct answers, device-voice fallback, isolated IDs, and percentage-only reset.');
+
+const equations=setup(),equationStories=new Set(),equationAnswers=[120,75,10,6,36,4,1800,2,90,6];
+for(let i=0;i<10;i++){
+ const id=`g9-equations-${String(i+1).padStart(2,'0')}`;
+ equations.run(`enter(8,${JSON.stringify(id)})`);
+ const task=equations.run('t()');equationStories.add(task.story.join(' '));
+ assert.equal(task.answer,equationAnswers[i]);assert.equal(equations.run('grade9Task().topicId'),'equations');
+ assert.equal(task.valid.length,2);assert.equal(task.paths.length,3);assert.equal(task.explain.length,3);
+ for(let stage=0;stage<6;stage++){equations.run(`route=0;stage=${stage};render()`)}
+ equations.run('route=1;stage=3;render()');
+ equations.run('complete()');assert.equal(equations.run('grade9Progress.length'),i+1);assert.equal(equations.run('done(8).length'),0);
+}
+assert.equal(equationStories.size,10);
+assert.equal(equations.run("grade9Progress.every(id=>id.startsWith('g9-equations-'))"),true);
+equations.run("grade9Topic='equations';grade9Filter='done'");assert.equal(equations.run('grade9VisibleTasks().length'),10);
+equations.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.mp3'}};enter(8,'g9-equations-01');say(window.spokenStory(t()))");assert.ok(equations.get('help').innerHTML.includes('hlas svého zařízení'));
+const equationSeparated=setup();equationSeparated.run("enter(8,'g9-equations-01');complete();enter(8,'g9-percentages-01');complete();enter(8,0);complete()");assert.equal(equationSeparated.run('grade9Progress.length'),3);
+equationSeparated.run("grade9Topic='equations';resetGrade9Topic()");assert.equal(equationSeparated.run("grade9Progress.includes('g9-equations-01')"),false);assert.equal(equationSeparated.run("grade9Progress.includes('g9-percentages-01')"),true);assert.equal(equationSeparated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(equationSeparated.run('done(8).join(",")'),'0');
+const manifest=setup();manifest.run(fs.readFileSync('voice-manifest.js','utf8'));assert.equal(manifest.run('Object.keys(window.voiceManifest).length'),90);assert.equal(fs.readdirSync('audio').filter(name=>name.endsWith('.mp3')).length,90);
+console.log('PASS: 10 distinct equation tasks, two valid routes, all stages, correct answers, device voice, isolated progress/reset, and all 90 Marin recordings preserved.');
