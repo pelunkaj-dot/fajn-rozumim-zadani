@@ -78,7 +78,7 @@ console.log('PASS: uploaded Marin MP3 selected by real read handler; direct task
 const g9=setup();
 assert.equal(g9.run('window.grade9Model.tasks.length'),100);
 assert.equal(g9.run('window.grade9Model.topics.length'),10);
-assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),10);
+assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),20);
 assert.equal(g9.run('new Set(window.grade9Model.tasks.map(t=>t.id)).size'),100);
 assert.equal(g9.run('window.grade9Model.tasks.every(t=>t.grade===9&&t.topicId&&t.topicOrder&&t.difficulty&&t.rewardId)'),true);
 g9.run('enter(8,7)');assert.equal(g9.run('mission'),7);assert.ok(g9.get('app').innerHTML.includes('Přehled 9. ročníku'));
@@ -93,3 +93,19 @@ const migrated=setup({'fajn-rozumim-v2':JSON.stringify({'0':[2],'4':[1,6],'8':[0
 assert.equal(migrated.run('done(0).join(",")'),'2');assert.equal(migrated.run('done(4).join(",")'),'1,6');assert.equal(migrated.run('grade9Progress.length'),2);assert.equal(JSON.parse(migrated.store.get('fajn-rozumim-v2'))[8].length,2);
 for(let grade=0;grade<8;grade++){const unchanged=setup();unchanged.run(`enter(${grade},4);complete()`);assert.equal(unchanged.run(`done(${grade}).join(',')`),'4');assert.equal(unchanged.run('grade9Progress.length'),0)}
 console.log('PASS: grade 9 free selection, filters, overview return, repeat, isolated topic reset, legacy migration, 100-task metadata, and unchanged grades 1-8.');
+
+const percentages=setup(),percentageStories=new Set(),expected=[120,800,1200,15,1440,30250,90,84,1200,20];
+for(let i=0;i<10;i++){
+ const id=`g9-percentages-${String(i+1).padStart(2,'0')}`;
+ percentages.run(`enter(8,${JSON.stringify(id)})`);
+ const task=percentages.run('t()');percentageStories.add(task.story.join(' '));
+ assert.equal(task.answer,expected[i]);assert.equal(percentages.run('grade9Task().topicId'),'percentages');
+ for(let stage=0;stage<6;stage++){percentages.run(`route=0;stage=${stage};render()`)}
+ percentages.run('complete()');assert.equal(percentages.run('grade9Progress.length'),i+1);assert.equal(percentages.run('done(8).length'),0);
+}
+assert.equal(percentageStories.size,10);assert.equal(percentages.run("grade9Progress.every(id=>id.startsWith('g9-percentages-'))"),true);
+percentages.run("grade9Topic='percentages';grade9Filter='done'");assert.equal(percentages.run('grade9VisibleTasks().length'),10);
+percentages.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.mp3'}};enter(8,'g9-percentages-01');say(window.spokenStory(t()))");assert.ok(percentages.get('help').innerHTML.includes('hlas svého zařízení'));
+const separated=setup();separated.run("enter(8,'g9-percentages-01');complete();enter(8,0);complete()");assert.equal(separated.run('grade9Progress.length'),2);assert.equal(separated.run("grade9Progress.includes('g9-percentages-01')"),true);assert.equal(separated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(separated.run('done(8).join(",")'),'0');
+separated.run("grade9Topic='percentages';resetGrade9Topic()");assert.equal(separated.run("grade9Progress.includes('g9-percentages-01')"),false);assert.equal(separated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(separated.run('done(8).join(",")'),'0');
+console.log('PASS: 10 distinct percentage tasks, all stages, correct answers, device-voice fallback, isolated IDs, and percentage-only reset.');
