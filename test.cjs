@@ -5,7 +5,7 @@ function setup(initial={}){
  const get=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};
  const document={getElementById:get,createElement:node,querySelector:()=>node()};
  const ctx=vm.createContext({document,window:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setTimeout,console,URLSearchParams,confirm:()=>true});
- vm.runInContext(fs.readFileSync('tasks.js','utf8'),ctx);ctx.tasks=ctx.window.tasks;vm.runInContext(fs.readFileSync('czech.js','utf8'),ctx);vm.runInContext(fs.readFileSync('missions.js','utf8'),ctx);vm.runInContext(fs.readFileSync('grade9.js','utf8'),ctx);
+ vm.runInContext(fs.readFileSync('tasks.js','utf8'),ctx);ctx.tasks=ctx.window.tasks;vm.runInContext(fs.readFileSync('czech.js','utf8'),ctx);vm.runInContext(fs.readFileSync('missions.js','utf8'),ctx);vm.runInContext(fs.readFileSync('grade9.js','utf8'),ctx);vm.runInContext(fs.readFileSync('world9.js','utf8'),ctx);
  vm.runInContext(fs.readFileSync('app.js','utf8'),ctx);
  const run=s=>vm.runInContext(s,ctx);
  return {run,nodes,store,get,clickChoice:i=>get('work').children.at(-1).children[i].onclick()};
@@ -21,7 +21,7 @@ const old=setup({'fajn-rozumim-v1':JSON.stringify({completed:[4,8]})});assert.eq
 assert.equal(y.run('tasks[4].answer'),65000/4000);
 assert.equal(y.run('birdCount(1)'),'jedna sýkorka');assert.equal(y.run('birdCount(5)'),'pět sýkorek');
 const nav=setup();nav.run('enter(1);groups[0]=3;route=0;stage=3;render()');assert.equal(nav.get('actions').children[0].textContent,'← Zpět k předchozímu kroku');nav.get('actions').children[0].onclick();assert.equal(nav.run('stage'),2);nav.get('actions').children[0].onclick();assert.equal(nav.run('stage'),1);assert.equal(nav.run('groups[0]'),3);
-for(const f of ['missions.js','voice-manifest.js','index.html','app.js','style.css','tasks.js','worlds.webp','sprites.webp','objects.webp'])assert.ok(fs.statSync(''+f).size>0);
+for(const f of ['missions.js','voice-manifest.js','index.html','app.js','style.css','tasks.js','world9.js','worlds.webp','sprites.webp','objects.webp'])assert.ok(fs.statSync(''+f).size>0);
 console.log('PASS: all 9 worlds and stages render; bird model gate; optional calculation; 10 unique missions; no duplicate reward; dead end and return; wrong/correct result; legacy progress migration; units and Czech number forms; assets present. DOM logic test, not browser layout test.');
 
 for(let world=0;world<9;world++){
@@ -39,10 +39,10 @@ for(let world=0;world<9;world++){
   for(let st=0;st<5;st++){z.run(`stage=${st};route=0;render()`)}
   if(world>0){z.run('stage=3;route=1;render()')}
   z.run('complete()');assert.equal(z.run('done(w).length'),m+1);
-  if(m<9){const next=z.get('actions').children.findLast(b=>b.id==='next-task');if(world===8){assert.equal(next.textContent,'Zpět na přehled úloh →')}else{assert.equal(next.textContent,'Další úloha →');next.onclick();assert.equal(z.run('mission'),m+1)}}
+  if(m<9){const next=z.get('actions').children.findLast(b=>b.id==='next-task');if(world===8){assert.equal(next.textContent,`Další nesplněná v okruhu: ${m+2} →`)}else{assert.equal(next.textContent,'Další úloha →');next.onclick();assert.equal(z.run('mission'),m+1)}}
  }
  assert.equal(seen.size,10);assert.equal(z.run('nextMission()'),null);
- assert.equal(z.get('actions').children.findLast(b=>b.id==='next-task').textContent,world===8?'Zpět na přehled úloh →':'Vybrat další svět →');
+ assert.equal(z.get('actions').children.findLast(b=>b.id==='next-task').textContent,world===8?'Okruh je hotový — zpět do města →':'Vybrat další svět →');
 }
 console.log('PASS: 90 distinct introductory variants, both valid routes, parameter arithmetic, next task in all grades, completion boundary.');
 module.exports={setup};
@@ -81,8 +81,8 @@ assert.equal(g9.run('window.grade9Model.topics.length'),10);
 assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),100);
 assert.equal(g9.run('new Set(window.grade9Model.tasks.map(t=>t.id)).size'),100);
 assert.equal(g9.run('window.grade9Model.tasks.every(t=>t.grade===9&&t.topicId&&t.topicOrder&&t.difficulty&&t.rewardId)'),true);
-g9.run('enter(8,7)');assert.equal(g9.run('mission'),7);assert.ok(g9.get('app').innerHTML.includes('Přehled 9. ročníku'));
-g9.get('map-back').onclick();assert.ok(g9.get('app').innerHTML.includes('Přehled úloh 9. ročníku'));
+g9.run('enter(8,7)');assert.equal(g9.run('mission'),7);assert.ok(g9.get('app').innerHTML.includes('Herní svět a úlohy'));
+g9.get('map-back').onclick();assert.ok(g9.get('app').innerHTML.includes('Město souvislostí'));
 g9.run("grade9Topic='finance';grade9Filter='all'");assert.equal(g9.run('grade9VisibleTasks().length'),10);
 g9.run('enter(8,7);complete()');assert.equal(g9.run('grade9Progress.length'),1);
 g9.run("grade9Filter='done'");assert.equal(g9.run('grade9VisibleTasks().length'),1);
@@ -256,3 +256,22 @@ const allTopics=setup();for(const topic of ['percentages','equations','systems',
 allTopics.run("grade9Topic='multistep';resetGrade9Topic()");assert.equal(allTopics.run("grade9Progress.includes('g9-multistep-01')"),false);assert.equal(allTopics.run('grade9Progress.length'),9);assert.equal(allTopics.run("grade9Progress.includes('g9-data-01')"),true);assert.equal(allTopics.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(allTopics.run('done(8).join(",")'),'0');
 assert.equal(allTopics.run('window.grade9Model.tasks.every(t=>t.available&&t.content||t.topicId==="finance")'),true);
 console.log('PASS: 10 distinct multistep tasks, all 100 grade-9 tasks available, two valid routes plus misconception route, all stages, device voice, and isolated progress/reset.');
+
+const city=setup();
+assert.deepEqual(Array.from(city.run('window.grade9World.order')),['percentages','equations','systems','ratio','functions','finance','geometry','volume','data','multistep']);
+assert.equal(city.run('Object.values(window.grade9World.districts).every(d=>d.rewards.length===10)'),true);
+assert.equal(city.run("window.grade9World.topicCount('geometry',grade9Progress)"),0);
+city.run("enter(8,'g9-geometry-04');complete()");
+assert.equal(city.run("window.grade9World.topicCount('geometry',grade9Progress)"),1);
+assert.ok(city.run("window.grade9World.render(grade9Progress,'geometry')").includes('progress-1 selected'));
+assert.ok(city.run("window.grade9World.mini('geometry',grade9Progress,4)").includes('Klenutý most'));
+city.run("complete()");assert.equal(city.run('grade9Progress.length'),1);
+for(let i=1;i<=10;i++)city.run(`enter(8,'g9-geometry-${String(i).padStart(2,'0')}');complete()`);
+assert.equal(city.run("window.grade9World.topicCount('geometry',grade9Progress)"),10);
+assert.ok(city.run("window.grade9World.render(grade9Progress,'geometry')").includes('complete'));
+city.run("enter(8,'g9-percentages-01');complete();grade9Topic='geometry';resetGrade9Topic()");
+assert.equal(city.run("window.grade9World.topicCount('geometry',grade9Progress)"),0);
+assert.equal(city.run("window.grade9World.topicCount('percentages',grade9Progress)"),1);
+const full=setup();for(const topic of full.run('window.grade9World.order'))for(let i=1;i<=10;i++)full.run(`enter(8,'g9-${topic}-${String(i).padStart(2,'0')}');complete()`);
+assert.equal(full.run('grade9Progress.length'),100);assert.ok(full.run('window.grade9World.render(grade9Progress)').includes('world-complete'));assert.ok(full.run('window.grade9World.render(grade9Progress)').includes('Město žije'));
+console.log('PASS: 100 unique task rewards map to ten districts; repeat is idempotent; topic reset is isolated; district and whole-world finales activate.');
