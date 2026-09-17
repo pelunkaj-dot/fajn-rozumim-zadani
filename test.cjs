@@ -78,7 +78,7 @@ console.log('PASS: uploaded Marin MP3 selected by real read handler; direct task
 const g9=setup();
 assert.equal(g9.run('window.grade9Model.tasks.length'),100);
 assert.equal(g9.run('window.grade9Model.topics.length'),10);
-assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),50);
+assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),60);
 assert.equal(g9.run('new Set(window.grade9Model.tasks.map(t=>t.id)).size'),100);
 assert.equal(g9.run('window.grade9Model.tasks.every(t=>t.grade===9&&t.topicId&&t.topicOrder&&t.difficulty&&t.rewardId)'),true);
 g9.run('enter(8,7)');assert.equal(g9.run('mission'),7);assert.ok(g9.get('app').innerHTML.includes('Přehled 9. ročníku'));
@@ -165,3 +165,21 @@ ratios.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.mp3'}}
 const ratioSeparated=setup();ratioSeparated.run("enter(8,'g9-ratio-01');complete();enter(8,'g9-systems-01');complete();enter(8,'g9-equations-01');complete();enter(8,'g9-percentages-01');complete();enter(8,0);complete()");assert.equal(ratioSeparated.run('grade9Progress.length'),5);
 ratioSeparated.run("grade9Topic='ratio';resetGrade9Topic()");assert.equal(ratioSeparated.run("grade9Progress.includes('g9-ratio-01')"),false);assert.equal(ratioSeparated.run("grade9Progress.includes('g9-systems-01')"),true);assert.equal(ratioSeparated.run("grade9Progress.includes('g9-equations-01')"),true);assert.equal(ratioSeparated.run("grade9Progress.includes('g9-percentages-01')"),true);assert.equal(ratioSeparated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(ratioSeparated.run('done(8).join(",")'),'0');
 console.log('PASS: 10 distinct ratio/proportion tasks, two valid routes plus misconception route, all stages, decimal answer, device voice, and isolated progress/reset.');
+
+const functions=setup(),functionStories=new Set(),functionAnswers=[14,23,3,2,260,30,20,16,63,31];
+for(let i=0;i<10;i++){
+ const id=`g9-functions-${String(i+1).padStart(2,'0')}`;
+ functions.run(`enter(8,${JSON.stringify(id)})`);
+ const task=functions.run('t()');functionStories.add(task.story.join(' '));
+ assert.equal(task.answer,functionAnswers[i]);assert.equal(functions.run('grade9Task().topicId'),'functions');
+ assert.equal(task.valid.join(','),'0,1');assert.equal(task.paths.length,3);assert.equal(task.explain.length,3);
+ for(let stage=0;stage<6;stage++){functions.run(`route=0;stage=${stage};render()`)}
+ functions.run('route=1;stage=3;render()');functions.run('route=2;stage=3;render()');
+ functions.run('complete()');assert.equal(functions.run('grade9Progress.length'),i+1);assert.equal(functions.run('done(8).length'),0);
+}
+assert.equal(functionStories.size,10);assert.equal(functions.run("grade9Progress.every(id=>id.startsWith('g9-functions-'))"),true);
+functions.run("grade9Topic='functions';grade9Filter='done'");assert.equal(functions.run('grade9VisibleTasks().length'),10);
+functions.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.mp3'}};enter(8,'g9-functions-01');say(window.spokenStory(t()))");assert.ok(functions.get('help').innerHTML.includes('hlas svého zařízení'));
+const functionSeparated=setup();functionSeparated.run("enter(8,'g9-functions-01');complete();enter(8,'g9-ratio-01');complete();enter(8,'g9-systems-01');complete();enter(8,'g9-equations-01');complete();enter(8,'g9-percentages-01');complete();enter(8,0);complete()");assert.equal(functionSeparated.run('grade9Progress.length'),6);
+functionSeparated.run("grade9Topic='functions';resetGrade9Topic()");assert.equal(functionSeparated.run("grade9Progress.includes('g9-functions-01')"),false);assert.equal(functionSeparated.run("grade9Progress.includes('g9-ratio-01')"),true);assert.equal(functionSeparated.run("grade9Progress.includes('g9-systems-01')"),true);assert.equal(functionSeparated.run("grade9Progress.includes('g9-equations-01')"),true);assert.equal(functionSeparated.run("grade9Progress.includes('g9-percentages-01')"),true);assert.equal(functionSeparated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(functionSeparated.run('done(8).join(",")'),'0');
+console.log('PASS: 10 distinct functions/graphs tasks, two valid routes plus misconception route, all stages, correct answers, device voice, and isolated progress/reset.');
