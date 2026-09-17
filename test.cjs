@@ -78,7 +78,7 @@ console.log('PASS: uploaded Marin MP3 selected by real read handler; direct task
 const g9=setup();
 assert.equal(g9.run('window.grade9Model.tasks.length'),100);
 assert.equal(g9.run('window.grade9Model.topics.length'),10);
-assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),70);
+assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),80);
 assert.equal(g9.run('new Set(window.grade9Model.tasks.map(t=>t.id)).size'),100);
 assert.equal(g9.run('window.grade9Model.tasks.every(t=>t.grade===9&&t.topicId&&t.topicOrder&&t.difficulty&&t.rewardId)'),true);
 g9.run('enter(8,7)');assert.equal(g9.run('mission'),7);assert.ok(g9.get('app').innerHTML.includes('Přehled 9. ročníku'));
@@ -201,3 +201,21 @@ geometry.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.mp3'
 const geometrySeparated=setup();geometrySeparated.run("enter(8,'g9-geometry-01');complete();enter(8,'g9-functions-01');complete();enter(8,'g9-ratio-01');complete();enter(8,'g9-systems-01');complete();enter(8,'g9-equations-01');complete();enter(8,'g9-percentages-01');complete();enter(8,0);complete()");assert.equal(geometrySeparated.run('grade9Progress.length'),7);
 geometrySeparated.run("grade9Topic='geometry';resetGrade9Topic()");assert.equal(geometrySeparated.run("grade9Progress.includes('g9-geometry-01')"),false);assert.equal(geometrySeparated.run("grade9Progress.includes('g9-functions-01')"),true);assert.equal(geometrySeparated.run("grade9Progress.includes('g9-ratio-01')"),true);assert.equal(geometrySeparated.run("grade9Progress.includes('g9-systems-01')"),true);assert.equal(geometrySeparated.run("grade9Progress.includes('g9-equations-01')"),true);assert.equal(geometrySeparated.run("grade9Progress.includes('g9-percentages-01')"),true);assert.equal(geometrySeparated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(geometrySeparated.run('done(8).join(",")'),'0');
 console.log('PASS: 10 distinct geometry tasks, two valid routes plus misconception route, all stages, decimal answers, device voice, and isolated progress/reset.');
+
+const volumes=setup(),volumeStories=new Set(),volumeAnswers=[64,112,2.75,282.6,120,20,324,9,420,60];
+for(let i=0;i<10;i++){
+ const id=`g9-volume-${String(i+1).padStart(2,'0')}`;
+ volumes.run(`enter(8,${JSON.stringify(id)})`);
+ const task=volumes.run('t()');volumeStories.add(task.story.join(' '));
+ assert.equal(task.answer,volumeAnswers[i]);assert.equal(volumes.run('grade9Task().topicId'),'volume');
+ assert.equal(task.valid.join(','),'0,1');assert.equal(task.paths.length,3);assert.equal(task.explain.length,3);
+ for(let stage=0;stage<6;stage++){volumes.run(`route=0;stage=${stage};render()`)}
+ volumes.run('route=1;stage=3;render()');volumes.run('route=2;stage=3;render()');
+ volumes.run('complete()');assert.equal(volumes.run('grade9Progress.length'),i+1);assert.equal(volumes.run('done(8).length'),0);
+}
+assert.equal(volumeStories.size,10);assert.equal(volumes.run("grade9Progress.every(id=>id.startsWith('g9-volume-'))"),true);
+volumes.run("grade9Topic='volume';grade9Filter='done'");assert.equal(volumes.run('grade9VisibleTasks().length'),10);
+volumes.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.mp3'}};enter(8,'g9-volume-01');say(window.spokenStory(t()))");assert.ok(volumes.get('help').innerHTML.includes('hlas svého zařízení'));
+const volumeSeparated=setup();volumeSeparated.run("enter(8,'g9-volume-01');complete();enter(8,'g9-geometry-01');complete();enter(8,'g9-functions-01');complete();enter(8,'g9-ratio-01');complete();enter(8,'g9-systems-01');complete();enter(8,'g9-equations-01');complete();enter(8,'g9-percentages-01');complete();enter(8,0);complete()");assert.equal(volumeSeparated.run('grade9Progress.length'),8);
+volumeSeparated.run("grade9Topic='volume';resetGrade9Topic()");assert.equal(volumeSeparated.run("grade9Progress.includes('g9-volume-01')"),false);assert.equal(volumeSeparated.run("grade9Progress.includes('g9-geometry-01')"),true);assert.equal(volumeSeparated.run("grade9Progress.includes('g9-functions-01')"),true);assert.equal(volumeSeparated.run("grade9Progress.includes('g9-ratio-01')"),true);assert.equal(volumeSeparated.run("grade9Progress.includes('g9-systems-01')"),true);assert.equal(volumeSeparated.run("grade9Progress.includes('g9-equations-01')"),true);assert.equal(volumeSeparated.run("grade9Progress.includes('g9-percentages-01')"),true);assert.equal(volumeSeparated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(volumeSeparated.run('done(8).join(",")'),'0');
+console.log('PASS: 10 distinct volume/conversion tasks, two valid routes plus misconception route, all stages, decimal answers, device voice, and isolated progress/reset.');
