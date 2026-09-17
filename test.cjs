@@ -78,7 +78,7 @@ console.log('PASS: uploaded Marin MP3 selected by real read handler; direct task
 const g9=setup();
 assert.equal(g9.run('window.grade9Model.tasks.length'),100);
 assert.equal(g9.run('window.grade9Model.topics.length'),10);
-assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),90);
+assert.equal(g9.run('window.grade9Model.tasks.filter(t=>t.available).length'),100);
 assert.equal(g9.run('new Set(window.grade9Model.tasks.map(t=>t.id)).size'),100);
 assert.equal(g9.run('window.grade9Model.tasks.every(t=>t.grade===9&&t.topicId&&t.topicOrder&&t.difficulty&&t.rewardId)'),true);
 g9.run('enter(8,7)');assert.equal(g9.run('mission'),7);assert.ok(g9.get('app').innerHTML.includes('Přehled 9. ročníku'));
@@ -237,3 +237,22 @@ dataTasks.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.mp3
 const dataSeparated=setup();dataSeparated.run("enter(8,'g9-data-01');complete();enter(8,'g9-volume-01');complete();enter(8,'g9-geometry-01');complete();enter(8,'g9-functions-01');complete();enter(8,'g9-ratio-01');complete();enter(8,'g9-systems-01');complete();enter(8,'g9-equations-01');complete();enter(8,'g9-percentages-01');complete();enter(8,0);complete()");assert.equal(dataSeparated.run('grade9Progress.length'),9);
 dataSeparated.run("grade9Topic='data';resetGrade9Topic()");assert.equal(dataSeparated.run("grade9Progress.includes('g9-data-01')"),false);assert.equal(dataSeparated.run("grade9Progress.includes('g9-volume-01')"),true);assert.equal(dataSeparated.run("grade9Progress.includes('g9-geometry-01')"),true);assert.equal(dataSeparated.run("grade9Progress.includes('g9-functions-01')"),true);assert.equal(dataSeparated.run("grade9Progress.includes('g9-ratio-01')"),true);assert.equal(dataSeparated.run("grade9Progress.includes('g9-systems-01')"),true);assert.equal(dataSeparated.run("grade9Progress.includes('g9-equations-01')"),true);assert.equal(dataSeparated.run("grade9Progress.includes('g9-percentages-01')"),true);assert.equal(dataSeparated.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(dataSeparated.run('done(8).join(",")'),'0');
 console.log('PASS: 10 distinct data/probability tasks, two valid routes plus misconception route, all stages, decimal answer, device voice, and isolated progress/reset.');
+
+const multistep=setup(),multistepStories=new Set(),multistepAnswers=[2057,889.2,16200,360,24,4880,60,16,19,20680];
+for(let i=0;i<10;i++){
+ const id=`g9-multistep-${String(i+1).padStart(2,'0')}`;
+ multistep.run(`enter(8,${JSON.stringify(id)})`);
+ const task=multistep.run('t()');multistepStories.add(task.story.join(' '));
+ assert.equal(task.answer,multistepAnswers[i]);assert.equal(multistep.run('grade9Task().topicId'),'multistep');
+ assert.equal(task.valid.join(','),'0,1');assert.equal(task.paths.length,3);assert.equal(task.explain.length,3);
+ for(let stage=0;stage<6;stage++){multistep.run(`route=0;stage=${stage};render()`)}
+ multistep.run('route=1;stage=3;render()');multistep.run('route=2;stage=3;render()');
+ multistep.run('complete()');assert.equal(multistep.run('grade9Progress.length'),i+1);assert.equal(multistep.run('done(8).length'),0);
+}
+assert.equal(multistepStories.size,10);assert.equal(multistep.run("grade9Progress.every(id=>id.startsWith('g9-multistep-'))"),true);
+multistep.run("grade9Topic='multistep';grade9Filter='done'");assert.equal(multistep.run('grade9VisibleTasks().length'),10);
+multistep.run("window.voiceManifest={'8-0':{text:'jiný text',src:'audio/old.mp3'}};enter(8,'g9-multistep-01');say(window.spokenStory(t()))");assert.ok(multistep.get('help').innerHTML.includes('hlas svého zařízení'));
+const allTopics=setup();for(const topic of ['percentages','equations','systems','ratio','functions','finance','geometry','volume','data','multistep'])allTopics.run(`enter(8,'g9-${topic}-01');complete()`);assert.equal(allTopics.run('grade9Progress.length'),10);assert.equal(allTopics.run('done(8).join(",")'),'0');
+allTopics.run("grade9Topic='multistep';resetGrade9Topic()");assert.equal(allTopics.run("grade9Progress.includes('g9-multistep-01')"),false);assert.equal(allTopics.run('grade9Progress.length'),9);assert.equal(allTopics.run("grade9Progress.includes('g9-data-01')"),true);assert.equal(allTopics.run("grade9Progress.includes('g9-finance-01')"),true);assert.equal(allTopics.run('done(8).join(",")'),'0');
+assert.equal(allTopics.run('window.grade9Model.tasks.every(t=>t.available&&t.content||t.topicId==="finance")'),true);
+console.log('PASS: 10 distinct multistep tasks, all 100 grade-9 tasks available, two valid routes plus misconception route, all stages, device voice, and isolated progress/reset.');
