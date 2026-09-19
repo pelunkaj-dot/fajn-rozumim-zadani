@@ -3,7 +3,7 @@
 const defs=[
 ['velkaCisla','Velká čísla'],['scitani','Sčítání a odčítání'],['nasobeni','Násobení a dělení'],['poradi','Pořadí operací'],['zlomky','Části celku a zlomky'],['desetinna','Desetinná čísla'],['jednotky','Jednotky a převody'],['obvodObsah','Obvod a obsah'],['penize','Peníze a nákupy'],['vicekrokove','Vícekrokové úlohy']];
 const topics=defs.map(function(x){return{id:x[0],name:x[1],rewardId:'district-'+x[0]};});
-function mk(title,story,question,other,paths,explain,answer,unit,check,badcheck,model,practice){return{title:title,story:story,question:question,other:other,paths:paths,valid:[0,1],explain:explain,answer:answer,unit:unit,check:check,badcheck:badcheck,model:model,modelChoice:practice,practice:practice};}
+function mk(title,story,question,other,paths,explain,answer,unit,check,badcheck,model,practice){var mc=practice||{q:'Co v příběhu znamenají uvedené údaje?',a:['Popisují množství a vztahy, které potřebujeme k řešení.','Jsou to jen čísla bez významu.'],ok:0};var pr={q:'Který postup odpovídá příběhu?',a:[paths[0],paths[2]||paths[1]],ok:0};return{title:title,story:story,question:question,other:other,paths:paths,valid:[0,1],explain:explain,answer:answer,unit:unit,check:check,badcheck:badcheck,model:model,modelChoice:mc,practice:pr};}
 const tasks=[];
 function add(topic,i,data){tasks.push({id:'g5-'+topic+'-'+String(i+1).padStart(2,'0'),grade:5,topicId:topic,topicOrder:i+1,difficulty:i<3?'lehká':i<7?'střední':'výzva',rewardId:'district-'+topic,available:true,missionIndex:null,content:data});}
 const pairs=[[12540,3200],[24800,4600],[31500,7500],[42750,5250],[53600,6400],[64200,5800],[70500,9500],[81600,8400],[90400,9600],[120000,15000]];
