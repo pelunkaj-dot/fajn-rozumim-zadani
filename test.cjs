@@ -5,7 +5,7 @@ function setup(initial={}){
  const get=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};
  const document={getElementById:get,createElement:node,querySelector:()=>node()};
  const ctx=vm.createContext({document,window:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setTimeout,console,URLSearchParams,confirm:()=>true});
- vm.runInContext(fs.readFileSync('tasks.js','utf8'),ctx);ctx.tasks=ctx.window.tasks;vm.runInContext(fs.readFileSync('czech.js','utf8'),ctx);vm.runInContext(fs.readFileSync('missions.js','utf8'),ctx);vm.runInContext(fs.readFileSync('grade8.js','utf8'),ctx);vm.runInContext(fs.readFileSync('world8.js','utf8'),ctx);vm.runInContext(fs.readFileSync('grade9.js','utf8'),ctx);vm.runInContext(fs.readFileSync('world9.js','utf8'),ctx);
+ vm.runInContext(fs.readFileSync('tasks.js','utf8'),ctx);ctx.tasks=ctx.window.tasks;vm.runInContext(fs.readFileSync('czech.js','utf8'),ctx);vm.runInContext(fs.readFileSync('missions.js','utf8'),ctx);vm.runInContext(fs.readFileSync('grade7.js','utf8'),ctx);vm.runInContext(fs.readFileSync('world7.js','utf8'),ctx);vm.runInContext(fs.readFileSync('grade8.js','utf8'),ctx);vm.runInContext(fs.readFileSync('world8.js','utf8'),ctx);vm.runInContext(fs.readFileSync('grade9.js','utf8'),ctx);vm.runInContext(fs.readFileSync('world9.js','utf8'),ctx);
  vm.runInContext(fs.readFileSync('app.js','utf8'),ctx);
  const run=s=>vm.runInContext(s,ctx);
  return {run,nodes,store,get,clickChoice:i=>get('work').children.at(-1).children[i].onclick()};
@@ -25,7 +25,7 @@ for(const f of ['missions.js','voice-manifest.js','index.html','app.js','style.c
 console.log('PASS: all 9 worlds and stages render; bird model gate; optional calculation; 10 unique missions; no duplicate reward; dead end and return; wrong/correct result; legacy progress migration; units and Czech number forms; assets present. DOM logic test, not browser layout test.');
 
 for(let world=0;world<9;world++){
- if(world===7)continue;
+ if(world===6||world===7)continue;
  const z=setup(),seen=new Set();
  for(let m=0;m<10;m++){
   z.run(`enter(${world},${m})`);const task=z.run('t()');seen.add(task.story.join(' '));
@@ -57,7 +57,7 @@ console.log('PASS: no correct-click sounds, unique-completion sound only, rotati
 const cs=setup(),voiceBank=JSON.parse(fs.readFileSync('tools/voice-texts.json','utf8'));
 assert.equal(cs.run('birdCount(2)'),'dvě sýkorky');assert.equal(cs.run('birdAcc(1)'),'jednu sýkorku');
 assert.equal(cs.run("window.spokenStory({story:['Zaplatím 1 Kč a 2 Kč.'],question:''}).trim()"),'Zaplatím jednu korunu a dvě koruny.');
-for(let w=0;w<9;w++){if(w===7)continue;for(let m=0;m<10;m++){
+for(let w=0;w<9;w++){if(w===6||w===7)continue;for(let m=0;m<10;m++){
  cs.run(`enter(${w},${m})`);const speech=cs.run('window.spokenStory(t())');
  assert.equal(speech,voiceBank[`${w}-${m}`]);assert.doesNotMatch(speech,/\d|\b(?:cm|kWh)\b|Kč/);
  assert.doesNotMatch(speech,/dva sýkorky|jedna sýkorku|dvě rohlíky|zemi tři metrů|se čtyři metrů/);
@@ -91,8 +91,8 @@ g9.run('enter(8,7);complete()');assert.equal(g9.run('cityProgress[8].length'),1)
 g9.run("cityProgress[8].push('g9-percentages-01');selTopic[8]='finance';resetCityTopic(8)");assert.equal(g9.run('cityProgress[8].includes("g9-finance-08")'),false);assert.equal(g9.run('cityProgress[8].includes("g9-percentages-01")'),true);assert.equal(g9.run('done(8).length'),0);
 const migrated=setup({'fajn-rozumim-v2':JSON.stringify({'0':[2],'4':[1,6],'8':[0,9]})});
 assert.equal(migrated.run('done(0).join(",")'),'2');assert.equal(migrated.run('done(4).join(",")'),'1,6');assert.equal(migrated.run('cityProgress[8].length'),2);assert.equal(JSON.parse(migrated.store.get('fajn-rozumim-v2'))[8].length,2);
-for(let grade=0;grade<7;grade++){const unchanged=setup();unchanged.run(`enter(${grade},4);complete()`);assert.equal(unchanged.run(`done(${grade}).join(',')`),'4');assert.equal(unchanged.run('cityProgress[8].length'),0);assert.equal(unchanged.run('cityProgress[7].length'),0)}
-console.log('PASS: grade 9 free selection, filters, overview return, repeat, isolated topic reset, legacy migration, 100-task metadata, and unchanged grades 1-7.');
+for(let grade=0;grade<6;grade++){const unchanged=setup();unchanged.run(`enter(${grade},4);complete()`);assert.equal(unchanged.run(`done(${grade}).join(',')`),'4');assert.equal(unchanged.run('cityProgress[8].length'),0);assert.equal(unchanged.run('cityProgress[7].length'),0);assert.equal(unchanged.run('cityProgress[6].length'),0)}
+console.log('PASS: grade 9 free selection, filters, overview return, repeat, isolated topic reset, legacy migration, 100-task metadata, and unchanged grades 1-6.');
 
 const percentages=setup(),percentageStories=new Set(),expected=[120,800,1200,15,1440,30250,90,84,1200,20];
 for(let i=0;i<10;i++){
@@ -332,3 +332,72 @@ g8world.run("enter(7,'g8-kruh-04');complete()");
 assert.equal(g8world.run("window.grade8World.topicCount('kruh',cityProgress[7])"),1);
 assert.ok(g8world.run("window.grade8World.render(cityProgress[7],'kruh')").includes('progress-1 selected'));
 console.log('PASS: grade 8 city world districts, topicCount, and render selection.');
+
+const g7=setup();
+assert.equal(g7.run('window.grade7Model.tasks.length'),100);
+assert.equal(g7.run('window.grade7Model.topics.length'),10);
+assert.equal(g7.run('window.grade7Model.tasks.filter(t=>t.available).length'),100);
+assert.equal(g7.run('new Set(window.grade7Model.tasks.map(t=>t.id)).size'),100);
+assert.equal(g7.run('window.grade7Model.tasks.every(t=>t.grade===7&&t.topicId&&t.topicOrder&&t.difficulty&&t.rewardId&&t.content)'),true);
+g7.run('enter(6,7)');assert.equal(g7.run('mission'),0);assert.ok(g7.get('app').innerHTML.includes('Herní svět a úlohy'));
+g7.get('map-back').onclick();assert.ok(g7.get('app').innerHTML.includes('Souměrné město'));
+console.log('PASS: grade 7 city model shape and overview navigation.');
+
+const g7topicsOrder=['celaCisla','zlomky','pomer','umernost','procenta','trojuhelniky','ctyruhelniky','soumernost','desetinnaCisla','slozene'];
+const g7Answers={celaCisla:[7,-250,-12,-4,225,1275,-39,42,4,1],zlomky:[0.625,0.7,0.6,0.5,6,2.25,21,100,3.75,0.4],pomer:[450,120,4,45,15,300,3,15,8400,3],umernost:[150,20,8,3,680,12,20,750,4,6],procenta:[3,135,300,48,680,540,40,58,15,100],trojuhelniky:[53,70,113,28,4,30,27,55,36,60],ctyruhelniky:[84,40,153,70,48,13,18,196,13,24],soumernost:[-7,4,-3,-1,4,3,2,10,24,-3],desetinnaCisla:[67.15,152.4,537,3.15,8.4,7.4,46,2500,0.47,104],slozene:[90,36,687.5,288,5,98,62.5,240,813.28,4]};
+const g7topics=setup();let g7doneSoFar=0;
+for(const topic of g7topicsOrder){
+ const stories=new Set(),answers=g7Answers[topic];
+ for(let i=0;i<10;i++){
+  const id=`g7-${topic}-${String(i+1).padStart(2,'0')}`;
+  g7topics.run(`enter(6,${JSON.stringify(id)})`);
+  const task=g7topics.run('t()');stories.add(task.story.join(' '));
+  assert.equal(task.answer,answers[i]);assert.equal(g7topics.run('cityTask(6).topicId'),topic);
+  assert.equal(task.valid.join(','),'0,1');assert.equal(task.paths.length,3);assert.equal(task.explain.length,3);
+  assert.ok(task.modelChoice&&task.practice);
+  for(let stage=0;stage<6;stage++){g7topics.run(`route=0;stage=${stage};render()`)}
+  g7topics.run('route=1;stage=3;render()');g7topics.run('route=2;stage=3;render()');
+  g7topics.run('complete()');g7doneSoFar++;assert.equal(g7topics.run('cityProgress[6].length'),g7doneSoFar);assert.equal(g7topics.run('done(6).length'),0);
+ }
+ assert.equal(stories.size,10);
+ g7topics.run(`selTopic[6]=${JSON.stringify(topic)};selFilter[6]='done'`);assert.equal(g7topics.run('cityVisibleTasks(6).length'),10);
+}
+assert.equal(g7topics.run('cityProgress[6].length'),100);
+assert.ok(g7topics.run('window.grade7World.render(cityProgress[6])').includes('world-complete'));
+assert.ok(g7topics.run('window.grade7World.render(cityProgress[6])').includes('Město je v rovnováze'));
+assert.equal(g7topics.run('done(7).length'),0);assert.equal(g7topics.run('cityProgress[7].length'),0);
+assert.equal(g7topics.run('done(8).length'),0);assert.equal(g7topics.run('cityProgress[8].length'),0);
+console.log('PASS: all 100 grade-7 tasks: distinct stories, correct answers, two valid routes plus misconception, filters, and full-city completion; grades 8 and 9 unaffected.');
+
+const g7reset=setup();
+g7reset.run("enter(6,'g7-celaCisla-01');complete();enter(6,'g7-zlomky-01');complete()");
+assert.equal(g7reset.run('cityProgress[6].length'),2);
+g7reset.run("selTopic[6]='celaCisla';resetCityTopic(6)");
+assert.equal(g7reset.run("cityProgress[6].includes('g7-celaCisla-01')"),false);
+assert.equal(g7reset.run("cityProgress[6].includes('g7-zlomky-01')"),true);
+console.log('PASS: grade 7 topic-isolated reset.');
+
+const g7voice=setup();
+g7voice.run("enter(6,'g7-trojuhelniky-01');say(window.spokenStory(t()))");
+assert.ok(g7voice.get('help').innerHTML.includes('hlas svého zařízení'));
+console.log('PASS: grade 7 tasks fall back to device voice (no recorded narration yet).');
+
+const g7world=setup();
+assert.deepEqual(Array.from(g7world.run('window.grade7World.order')),g7topicsOrder);
+assert.equal(g7world.run('Object.values(window.grade7World.districts).every(d=>d.rewards.length===10)'),true);
+assert.equal(g7world.run("window.grade7World.topicCount('trojuhelniky',cityProgress[6])"),0);
+g7world.run("enter(6,'g7-trojuhelniky-04');complete()");
+assert.equal(g7world.run("window.grade7World.topicCount('trojuhelniky',cityProgress[6])"),1);
+assert.ok(g7world.run("window.grade7World.render(cityProgress[6],'trojuhelniky')").includes('progress-1 selected'));
+console.log('PASS: grade 7 city world districts, topicCount, and render selection.');
+
+const allGrades=setup();
+allGrades.run("enter(6,'g7-celaCisla-01');complete();enter(7,'g8-mocniny-01');complete();enter(8,'g9-percentages-01');complete();enter(0,0);complete()");
+assert.equal(allGrades.run('cityProgress[6].length'),1);
+assert.equal(allGrades.run('cityProgress[7].length'),1);
+assert.equal(allGrades.run('cityProgress[8].length'),1);
+assert.equal(allGrades.run('done(0).length'),1);
+assert.deepEqual(JSON.parse(allGrades.store.get('fajn-rozumim-grade7-v1')),['g7-celaCisla-01']);
+assert.deepEqual(JSON.parse(allGrades.store.get('fajn-rozumim-grade8-v1')),['g8-mocniny-01']);
+assert.deepEqual(JSON.parse(allGrades.store.get('fajn-rozumim-grade9-v1')),['g9-percentages-01']);
+console.log('PASS: grades 6, 7, 8 (0-indexed) and grade 0 progress persist independently across storage keys.');
